@@ -22,6 +22,10 @@
         bidInput.value = "";
       }
     });
+
+    socket.on("bidRejected", ({ reason }) => {
+      alert(reason || "Enchère refusée");
+    });
   </script>
 </body>
 </html>

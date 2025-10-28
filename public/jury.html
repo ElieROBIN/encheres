@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Interface Jury</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <h1>Proposer une enchère</h1>
+  <input type="number" id="bidInput" placeholder="Saisir une enchère" />
+  <button id="sendBid">Envoyer</button>
+
+  <script>
+    const socket = io();
+    const sendBtn = document.getElementById("sendBid");
+    const bidInput = document.getElementById("bidInput");
+
+    sendBtn.addEventListener("click", () => {
+      const bid = bidInput.value;
+      if (bid) {
+        socket.emit("newBid", bid);
+        bidInput.value = "";
+      }
+    });
+  </script>
+</body>
+</html>

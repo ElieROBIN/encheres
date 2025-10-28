@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Vue Projecteur</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <h1>Dernière enchère : <span id="currentBid">—</span></h1>
+  <ul id="history"></ul>
+
+  <script>
+    const socket = io();
+    const currentBid = document.getElementById("currentBid");
+    const history = document.getElementById("history");
+
+    socket.on("updateBid", (bid) => {
+      currentBid.textContent = bid;
+      const li = document.createElement("li");
+      li.textContent = `Nouvelle enchère : ${bid}`;
+      history.prepend(li);
+    });
+  </script>
+</body>
+</html>

@@ -131,21 +131,21 @@ p {
 /*        Layout           */
 /* ======================= */
 .app {
-  padding: 24px;
+  padding: 1rem; /* Mobile first */
 }
 
 .grid {
   display: flex;
-  gap: 2.5rem;
-  align-items: flex-start;
+  flex-direction: column; /* Mobile first */
+  gap: 1.5rem;
+  align-items: stretch;
 }
 
 .product-panel {
   background: var(--panel);
-  /* width: 50%; */
-  padding: 24px;
-  border-radius: 10px;
-  border: 1px solid #1d1d1d;
+  padding: 0;           /* Mobile first: bord à bord */
+  border-radius: 0;
+  border: 0;
   flex: 1 1 auto;
 }
 
@@ -154,6 +154,7 @@ p {
 /* ======================= */
 .product-img {
   width: 100%;
+  height: auto;        /* Mobile first */
   display: block;
   background: #111;
   object-fit: contain;
@@ -164,9 +165,8 @@ p {
 /* ======================= */
 .info {
   display: flex;
-  /* width: 50%; */
-  flex-direction: column;
-  gap: 4rem;
+  flex-direction: column; /* Mobile first */
+  gap: 2rem;
   position: relative;
   z-index: 1;
 }
@@ -267,10 +267,10 @@ p {
 /*         Timer           */
 /* ======================= */
 .header-content {
-  display: flex;
-  align-items: flex-start;
+  display: flex;        /* Mobile first */
+  align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 .price-evolution {
@@ -279,8 +279,21 @@ p {
 }
 
 .timer {
-  width: 260px;
+  width: 100%;          /* Mobile first */
+  max-width: 260px;
   flex: 0 0 auto;
+}
+
+/* ======================= */
+/* Desktop (>= 980px)      */
+/* ======================= */
+@media (min-width: 980px) {
+  .app { padding: 24px; }
+  .grid { flex-direction: row; gap: 2.5rem; align-items: flex-start; }
+  .product-panel { padding: 24px; border-radius: 10px; border: 1px solid #1d1d1d; }
+  .info { gap: 4rem; }
+  .timer { width: 260px; }
+  .big-amount { font-size: 170px; }
 }
 
 .timer-text {

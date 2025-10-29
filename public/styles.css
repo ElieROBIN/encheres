@@ -233,7 +233,7 @@ p {
   color: black;
   background: var(--text);
   font-weight: 500;
-  font-size: 20px;
+  font-size: 32px;
   font-family: var(--font-display);
   padding: 1rem;
   border-radius: 8px;

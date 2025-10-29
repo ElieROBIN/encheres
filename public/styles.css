@@ -235,7 +235,7 @@ p {
   font-weight: 500;
   font-size: 32px;
   font-family: var(--font-display);
-  padding: 1rem;
+  padding: 2rem;
   border-radius: 8px;
   cursor: pointer;
   transition:

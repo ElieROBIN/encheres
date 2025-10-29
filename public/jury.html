@@ -23,6 +23,7 @@
     const buttons = document.querySelectorAll("#controls .inc");
 
     let currentBid = null; // synchronisé via les évènements serveur
+    let bidderName = null; // prénom saisi par l'utilisateur
 
     const format = (n) => `${n} €`;
 
@@ -31,10 +32,16 @@
     };
 
     // Ecoute des mises à jour globales (acceptées par le serveur)
-    socket.on("updateBid", (bid) => {
-      const parsed = typeof bid === "number" ? bid : parseFloat(bid);
-      if (!Number.isNaN(parsed)) {
-        currentBid = parsed;
+    socket.on("updateBid", (payload) => {
+      // payload peut être un nombre (ancien format) ou un objet { amount, name }
+      let amount;
+      if (typeof payload === "number") {
+        amount = payload;
+      } else if (payload && typeof payload === "object") {
+        amount = typeof payload.amount === "number" ? payload.amount : parseFloat(payload.amount);
+      }
+      if (!Number.isNaN(amount)) {
+        currentBid = amount;
         render();
       }
     });
@@ -44,7 +51,8 @@
       const inc = parseFloat(evt.currentTarget.getAttribute("data-inc"));
       const base = Number.isFinite(currentBid) ? currentBid : 0;
       const nextBid = base + inc;
-      socket.emit("newBid", nextBid);
+      const nameToSend = bidderName && bidderName.trim() ? bidderName.trim() : "Anonyme";
+      socket.emit("newBid", { amount: nextBid, name: nameToSend });
     };
 
     buttons.forEach((btn) => btn.addEventListener("click", onClickInc));
@@ -52,6 +60,20 @@
     socket.on("bidRejected", ({ reason }) => {
       alert(reason || "Enchère refusée");
     });
+
+    // Demander et mémoriser le prénom au premier chargement
+    const storedName = localStorage.getItem("juryFirstName");
+    if (storedName && storedName.trim()) {
+      bidderName = storedName.trim();
+    } else {
+      const asked = prompt("Votre prénom ?");
+      if (asked && asked.trim()) {
+        bidderName = asked.trim();
+        localStorage.setItem("juryFirstName", bidderName);
+      } else {
+        bidderName = "Anonyme";
+      }
+    }
 
     // Rendu initial
     render();

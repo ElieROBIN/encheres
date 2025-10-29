@@ -14,10 +14,13 @@
     const currentBid = document.getElementById("currentBid");
     const history = document.getElementById("history");
 
-    socket.on("updateBid", (bid) => {
-      currentBid.textContent = bid;
+    socket.on("updateBid", (payload) => {
+      const amount = (payload && typeof payload === "object") ? payload.amount : payload;
+      const name = (payload && typeof payload === "object") ? payload.name : null;
+      const display = (name && String(name).trim()) ? `${name} - ${amount}` : `${amount}`;
+      currentBid.textContent = display;
       const li = document.createElement("li");
-      li.textContent = `Nouvelle enchère : ${bid}`;
+      li.textContent = `Nouvelle enchère : ${display}`;
       history.prepend(li);
     });
   </script>

@@ -1,4 +1,6 @@
-/* Base */
+/* ======================= */
+/*       Variables         */
+/* ======================= */
 :root {
   --bg: #0a0a0a;
   --panel: #101010;
@@ -7,41 +9,37 @@
   --accent: #ffffff;
 }
 
-h1, h2, h3, h4, h5, h6, p {
-  margin: 0;
-}
-
+/* ======================= */
+/*        Reset CSS        */
+/* ======================= */
 * {
   box-sizing: border-box;
-}
-
-@media screen and (max-width: 720px) {
-  body {
-    margin: 1rem !important;
-  }
-
-  .grid {
-    flex-direction: column;
-  }
-
-  main .app {
-    padding: 0rem !important; 
-  }
+  margin: 0;
+  padding: 0;
 }
 
 html,
 body {
-  height: 100vh;
-}
-body {
-  margin: 2rem 4rem;
-  background: var(--bg);
-  color: var(--text);
+  height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
 }
 
-/* Header */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin: 0;
+}
+
+/* ======================= */
+/*        Header           */
+/* ======================= */
 .app-header {
   height: 48px;
   display: flex;
@@ -60,42 +58,58 @@ body {
   height: 16px;
 }
 
-/* Layout */
+/* ======================= */
+/*        Layout           */
+/* ======================= */
 .app {
   padding: 24px;
 }
+
 .grid {
   display: flex;
   gap: 2.5rem;
-  align-items: start;
+  align-items: flex-start;
 }
+
 .product-panel {
   background: var(--panel);
+  width: 50%;
   padding: 24px;
   border-radius: 10px;
   border: 1px solid #1d1d1d;
+  flex: 1 1 auto;
 }
+
+/* ======================= */
+/*        Images           */
+/* ======================= */
 .product-img {
-  height: 80vh;
-  width: auto;
+  width: 100%;
   display: block;
   border-radius: 6px;
   background: #111;
+  object-fit: contain;
 }
 
+/* ======================= */
+/*      Info Section       */
+/* ======================= */
 .info {
   display: flex;
+  width: 50%;
   flex-direction: column;
   gap: 4rem;
-  width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .last-inc {
   color: var(--muted);
   font-size: 24px;
 }
+
 .big-amount {
-  font-size: 170px;
+  font-size: 70px;
   line-height: 0.9;
   font-weight: 700;
   letter-spacing: 2px;
@@ -103,6 +117,7 @@ body {
   align-items: baseline;
   gap: 8px;
 }
+
 .big-amount .currency {
   font-size: 48px;
   color: var(--muted);
@@ -112,24 +127,33 @@ body {
 .information-about-product {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 8px;
 }
 
 .title {
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 40px;
+  font-weight: 500;
 }
+
 .desc {
   color: var(--muted);
   line-height: 1.5;
-  font-size: 14px;
+  font-size: 24px;
+  font-weight: 300;
+  opacity: .7;
 }
 
+/* ======================= */
+/*       Buttons           */
+/* ======================= */
 .btns {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  position: relative;
+  z-index: 1;
 }
+
 .btn {
   appearance: none;
   border: 1px solid #262626;
@@ -137,7 +161,7 @@ body {
   color: var(--text);
   font-weight: 700;
   font-size: 20px;
-  padding: 18px;
+  padding: 1rem;
   border-radius: 10px;
   cursor: pointer;
   transition:
@@ -145,10 +169,12 @@ body {
     border-color 0.15s,
     transform 0.02s;
 }
+
 .btn:hover {
   background: #1a1a1a;
   border-color: #2e2e2e;
 }
+
 .btn:active {
   transform: translateY(1px);
 }
@@ -158,28 +184,87 @@ body {
   cursor: not-allowed;
 }
 
-/* Timer layout and ensure it never blocks clicks */
+/* ======================= */
+/*         Timer           */
+/* ======================= */
 .header-content {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 2rem;
 }
-.price-evolution { flex: 1 1 auto; min-width: 0; }
-.timer { width: 260px; flex: 0 0 auto; }
-.timer-text { color: var(--muted); font-size: 18px; margin-bottom: 10px; }
-.timer-bar { height: 8px; background:#1a1a1a; border:1px solid #262626; border-radius: 999px; overflow: hidden; }
-.timer-bar-fill { height:100%; width:0; background:#fff; }
-.timer, .timer-bar, .timer-bar-fill { pointer-events: none; }
 
-.btns { position: relative; z-index: 1; }
-.info { position: relative; z-index: 1; }
+.price-evolution {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 
+.timer {
+  width: 260px;
+  flex: 0 0 auto;
+}
+
+.timer-text {
+  color: var(--muted);
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.timer-bar {
+  height: 8px;
+  background: #1a1a1a;
+  border: 1px solid #262626;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.timer-bar-fill {
+  height: 100%;
+  width: 0;
+  background: #fff;
+}
+
+/* Empêche le timer de bloquer les clics */
+.timer,
+.timer-bar,
+.timer-bar-fill {
+  pointer-events: none;
+}
+
+/* ======================= */
+/*       Responsive        */
+/* ======================= */
 @media (max-width: 980px) {
   .grid {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
+
   .big-amount {
     font-size: 88px;
+  }
+}
+
+@media (max-width: 720px) {
+  body {
+    margin: 1rem !important;
+  }
+
+  .app {
+    padding: 0 !important;
+  }
+
+  .grid {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .product-img {
+    width: 100% !important;
+    height: fit-content;
+  }
+
+  .header-content {
+    flex-direction: column-reverse;
+    gap: 3rem;
   }
 }

@@ -48,6 +48,7 @@
             <button class="btn inc" data-inc="250">+250€</button>
             <button class="btn inc" data-inc="500">+500€</button>
           </div>
+          <p id="bidHint" class="bid-hint">Appuyez pour enchérir</p>
         </div>
       </div>
     </main>
@@ -59,11 +60,13 @@
       const buttons = document.querySelectorAll("#controls .inc");
        const timerEl = document.getElementById("timer");
        const timerFillEl = document.querySelector(".timer-bar-fill");
+      const bidHintEl = document.getElementById("bidHint");
 
       let currentBid = null; // synchronisé via les évènements serveur
       let bidderName = null; // prénom saisi par l'utilisateur
       let cooldownUntilMs = 0; // anti-spam après clic
       let isTimerAllowingBids = true;
+      let cooldownInterval = null;
        let timerInterval = null;
        const TIMER_SECONDS = 30;
        let timerEndAtMs = null;
@@ -81,7 +84,30 @@
         const allowedByCooldown = Date.now() >= cooldownUntilMs;
         const enabled = isTimerAllowingBids && allowedByCooldown;
         buttons.forEach((btn) => { btn.disabled = !enabled; });
+        renderBidHint();
       };
+      const renderBidHint = () => {
+        if (!bidHintEl) return;
+        const remaining = Math.max(0, Math.ceil((cooldownUntilMs - Date.now()) / 1000));
+        if (remaining > 0) {
+          bidHintEl.textContent = `Vous pourrez surenchérir dans ${remaining} seconde${remaining > 1 ? 's' : ''}`;
+        } else {
+          bidHintEl.textContent = "Appuyez pour enchérir";
+        }
+      };
+
+      const startCooldownTicker = () => {
+        if (cooldownInterval) clearInterval(cooldownInterval);
+        cooldownInterval = setInterval(() => {
+          renderBidHint();
+          if (Date.now() >= cooldownUntilMs) {
+            clearInterval(cooldownInterval);
+            cooldownInterval = null;
+            updateButtonsState();
+          }
+        }, 200);
+      };
+
 
       const setButtonsEnabled = (enabled) => {
         isTimerAllowingBids = enabled;
@@ -161,7 +187,7 @@
         // Active un cooldown local de 5s
         cooldownUntilMs = Date.now() + 5000;
         updateButtonsState();
-        setTimeout(updateButtonsState, 5000);
+        startCooldownTicker();
       };
 
       buttons.forEach((btn) => btn.addEventListener("click", onClickInc));
@@ -187,6 +213,7 @@
       // Rendu initial
       render();
       startTimer();
+      updateButtonsState();
     </script>
   </body>
 </html>

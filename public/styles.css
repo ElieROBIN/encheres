@@ -238,6 +238,11 @@ p {
   width: 100% !important;
 }
 
+.bid-hint {
+  display: flex;
+  justify-content: center;
+  margin-top: -1.5rem;
+}
 
 .btn {
   appearance: none;

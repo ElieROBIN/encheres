@@ -62,6 +62,8 @@
 
       let currentBid = null; // synchronisé via les évènements serveur
       let bidderName = null; // prénom saisi par l'utilisateur
+      let cooldownUntilMs = 0; // anti-spam après clic
+      let isTimerAllowingBids = true;
        let timerInterval = null;
        const TIMER_SECONDS = 30;
        let timerEndAtMs = null;
@@ -75,11 +77,16 @@
             : formatAmount(currentBid);
       };
 
-       const setButtonsEnabled = (enabled) => {
-         buttons.forEach((btn) => {
-           btn.disabled = !enabled;
-         });
-       };
+      const updateButtonsState = () => {
+        const allowedByCooldown = Date.now() >= cooldownUntilMs;
+        const enabled = isTimerAllowingBids && allowedByCooldown;
+        buttons.forEach((btn) => { btn.disabled = !enabled; });
+      };
+
+      const setButtonsEnabled = (enabled) => {
+        isTimerAllowingBids = enabled;
+        updateButtonsState();
+      };
 
        const formatTime = (totalSeconds) => {
          const clamped = Math.max(0, Math.ceil(totalSeconds));
@@ -108,7 +115,7 @@
          stopTimer();
          timerEndAtMs = Date.now() + TIMER_SECONDS * 1000;
          renderTimer(TIMER_SECONDS);
-         setButtonsEnabled(true);
+        setButtonsEnabled(true);
          timerInterval = setInterval(() => {
            const remaining = Math.max(0, (timerEndAtMs - Date.now()) / 1000);
            renderTimer(remaining);
@@ -144,12 +151,17 @@
 
       // Envoi direct d'une nouvelle enchère en ajoutant l'incrément choisi
       const onClickInc = (evt) => {
+        if (Date.now() < cooldownUntilMs) return; // ignore pendant le cooldown
         const inc = parseFloat(evt.currentTarget.getAttribute("data-inc"));
         const base = Number.isFinite(currentBid) ? currentBid : 0;
         const nextBid = base + inc;
         const nameToSend =
           bidderName && bidderName.trim() ? bidderName.trim() : "Anonyme";
         socket.emit("newBid", { amount: nextBid, name: nameToSend, inc });
+        // Active un cooldown local de 5s
+        cooldownUntilMs = Date.now() + 5000;
+        updateButtonsState();
+        setTimeout(updateButtonsState, 5000);
       };
 
       buttons.forEach((btn) => btn.addEventListener("click", onClickInc));
@@ -174,7 +186,7 @@
 
       // Rendu initial
       render();
-       startTimer();
+      startTimer();
     </script>
   </body>
 </html>

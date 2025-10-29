@@ -52,7 +52,7 @@
       const base = Number.isFinite(currentBid) ? currentBid : 0;
       const nextBid = base + inc;
       const nameToSend = bidderName && bidderName.trim() ? bidderName.trim() : "Anonyme";
-      socket.emit("newBid", { amount: nextBid, name: nameToSend });
+      socket.emit("newBid", { amount: nextBid, name: nameToSend, inc });
     };
 
     buttons.forEach((btn) => btn.addEventListener("click", onClickInc));

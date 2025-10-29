@@ -37,13 +37,14 @@ io.on("connection", (socket) => {
   }
 
   // Informer le nouveau client de la valeur actuelle
-  socket.emit("updateBid", { amount: io.currentBid, name: io.currentBidderName });
+  socket.emit("updateBid", { amount: io.currentBid, name: io.currentBidderName, inc: null });
 
   // Quand quelqu’un envoie une nouvelle enchère
   socket.on("newBid", (payload) => {
     // payload attendu: { amount, name }
     const amount = payload && typeof payload === "object" ? payload.amount : payload;
     const name = payload && typeof payload === "object" ? payload.name : null;
+    const inc = payload && typeof payload === "object" ? payload.inc : null;
     const numericBid = typeof amount === "number" ? amount : parseFloat(amount);
 
     if (Number.isNaN(numericBid)) {
@@ -60,8 +61,14 @@ io.on("connection", (socket) => {
 
     io.currentBid = numericBid;
     io.currentBidderName = (typeof name === "string" && name.trim()) ? name.trim() : null;
-    console.log("Nouvelle enchère acceptée :", numericBid, io.currentBidderName ? `par ${io.currentBidderName}` : "");
-    io.emit("updateBid", { amount: numericBid, name: io.currentBidderName }); // envoie à tous les clients
+    const incToSend = typeof inc === "number" ? inc : null;
+    console.log(
+      "Nouvelle enchère acceptée :",
+      numericBid,
+      io.currentBidderName ? `par ${io.currentBidderName}` : "",
+      incToSend ? `(+${incToSend})` : ""
+    );
+    io.emit("updateBid", { amount: numericBid, name: io.currentBidderName, inc: incToSend }); // envoie à tous les clients
   });
 
   // Quand quelqu’un se déconnecte

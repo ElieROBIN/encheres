@@ -13,15 +13,33 @@
     const socket = io();
     const currentBid = document.getElementById("currentBid");
     const history = document.getElementById("history");
+    let lastAmount = null;
 
     socket.on("updateBid", (payload) => {
       const amount = (payload && typeof payload === "object") ? payload.amount : payload;
       const name = (payload && typeof payload === "object") ? payload.name : null;
-      const display = (name && String(name).trim()) ? `${name} - ${amount}` : `${amount}`;
-      currentBid.textContent = display;
+      const inc = (payload && typeof payload === "object") ? payload.inc : null;
+
+      const displayHeader = (name && String(name).trim()) ? `${name} - ${amount}` : `${amount}`;
+      currentBid.textContent = displayHeader;
+
+      let incDisplay = null;
+      if (typeof inc === "number") {
+        incDisplay = `+${inc}`;
+      } else if (typeof amount === "number" && typeof lastAmount === "number" && amount > lastAmount) {
+        incDisplay = `+${amount - lastAmount}`;
+      }
+
+      const line = (name && String(name).trim())
+        ? (incDisplay ? `${name} ${incDisplay}` : `${name} ${amount}`)
+        : (incDisplay ? `${incDisplay}` : `${amount}`);
       const li = document.createElement("li");
-      li.textContent = `Nouvelle enchère : ${display}`;
+      li.textContent = line;
       history.prepend(li);
+
+      if (typeof amount === "number") {
+        lastAmount = amount;
+      }
     });
   </script>
 </body>

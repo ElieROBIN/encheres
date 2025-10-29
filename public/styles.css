@@ -155,7 +155,6 @@ p {
 .product-img {
   width: 100%;
   display: block;
-  border-radius: 6px;
   background: #111;
   object-fit: contain;
 }
@@ -222,7 +221,7 @@ p {
 .btns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: .5rem;
   position: relative;
   z-index: 1;
 }
@@ -230,10 +229,11 @@ p {
 .btn {
   appearance: none;
   border: 1px solid #262626;
-  background: #141414;
-  color: var(--text);
+  color: black;
+  background: var(--text);
   font-weight: 500;
   font-size: 20px;
+  font-family: var(--font-display);
   padding: 1rem;
   border-radius: 8px;
   cursor: pointer;
@@ -244,7 +244,7 @@ p {
 }
 
 .btn:hover {
-  background: #1a1a1a;
+  background: white;
   border-color: #2e2e2e;
 }
 
@@ -328,6 +328,28 @@ p {
     margin: 1rem !important;
   }
 
+  .app-header {
+    padding: 0rem !important;
+  }
+
+  .timer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .product-panel, .info {
+    width: 100% !important;
+  }
+
+  .product-panel {
+    border-radius: 0px;
+  }
+
+  .product-img img {
+    border-radius: 0px;
+  }
+
   .app {
     padding: 0 !important;
   }
@@ -337,13 +359,33 @@ p {
     gap: 1.5rem;
   }
 
+  .big-amount {
+    font-size: 40px;
+  }
+
+  .info {
+    gap: 2rem;
+  }
+
   .product-img {
     width: 100% !important;
     height: fit-content;
   }
 
+  .title {
+    font-size: 24px;
+  }
+
+  .last-inc {
+    font-size: 1rem;
+  }
+
+  .desc {
+    font-size: 1rem;
+  }
+
   .header-content {
-    flex-direction: column-reverse;
-    gap: 3rem;
+    flex-direction: row;
+    justify-content: space-between;
   }
 }

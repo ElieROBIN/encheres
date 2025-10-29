@@ -142,6 +142,7 @@ p {
 }
 
 .product-panel {
+  width: 100%;
   background: var(--panel);
   padding: 0;           /* Mobile first: bord à bord */
   border-radius: 0;

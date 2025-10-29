@@ -4,43 +4,119 @@
   <meta charset="UTF-8">
   <title>Vue Projecteur</title>
   <script src="/socket.io/socket.io.js"></script>
+  <link rel="stylesheet" href="/projector.css">
 </head>
-<body>
-  <h1>Dernière enchère : <span id="currentBid">—</span></h1>
-  <ul id="history"></ul>
+<body class="projector">
+  <header class="proj-header">
+    <div class="proj-brand">
+      <img src="/logo_ink.svg" alt="INK" />
+      INK
+    </div>
+  </header>
+
+  <main class="proj-app">
+    <div class="proj-grid">
+      <div class="proj-image-panel">
+        <img class="proj-image" src="/photo-qrcode.png" alt="Produit" />
+      </div>
+
+      <div class="proj-info">
+        <div>
+          <div class="proj-title">Flyer Name</div>
+          <div class="proj-desc">This is a vintage flyer design use this template for your next background included.</div>
+          <div class="proj-sep"></div>
+        </div>
+
+        <div class="proj-meta">
+          <div>Dernière enchère : <span id="projLastBidder">—</span></div>
+          <div class="proj-timer">Temps restant <span class="proj-timer-value" id="projTimer">00:30</span></div>
+        </div>
+
+        <div class="proj-amount"><span id="projAmount">1</span><span class="cur">€</span></div>
+
+        <div class="proj-history" id="projHistory"></div>
+      </div>
+    </div>
+  </main>
 
   <script>
     const socket = io();
-    const currentBid = document.getElementById("currentBid");
-    const history = document.getElementById("history");
-    let lastAmount = null;
 
-    socket.on("updateBid", (payload) => {
-      const amount = (payload && typeof payload === "object") ? payload.amount : payload;
-      const name = (payload && typeof payload === "object") ? payload.name : null;
-      const inc = (payload && typeof payload === "object") ? payload.inc : null;
+    // Elements
+    const amountEl = document.getElementById('projAmount');
+    const lastBidderEl = document.getElementById('projLastBidder');
+    const historyEl = document.getElementById('projHistory');
+    const timerEl = document.getElementById('projTimer');
 
-      const displayHeader = (name && String(name).trim()) ? `${name} - ${amount}` : `${amount}`;
-      currentBid.textContent = displayHeader;
+    // State
+    let currentAmount = 1;
+    let historyItems = []; // { name, inc }
+    const MAX_ITEMS = 4;
 
-      let incDisplay = null;
-      if (typeof inc === "number") {
-        incDisplay = `+${inc}`;
-      } else if (typeof amount === "number" && typeof lastAmount === "number" && amount > lastAmount) {
-        incDisplay = `+${amount - lastAmount}`;
+    // Timer (desktop projector mirrors jury logic - no restart on bids)
+    const TIMER_SECONDS = 30;
+    let timerInterval = null;
+    let timerEndAtMs = null;
+
+    function formatNumber(n) {
+      return new Intl.NumberFormat('fr-FR').format(n);
+    }
+
+    function renderAmount() {
+      amountEl.textContent = formatNumber(currentAmount);
+    }
+
+    function renderHistory() {
+      historyEl.innerHTML = historyItems
+        .slice(0, MAX_ITEMS)
+        .map(item => `<div class="proj-history-item"><span class="name">${item.name}</span><span class="inc">+${item.inc}</span></div>`)
+        .join('');
+    }
+
+    function formatTime(totalSeconds) {
+      const clamped = Math.max(0, Math.ceil(totalSeconds));
+      const m = String(Math.floor(clamped / 60)).padStart(2, '0');
+      const s = String(clamped % 60).padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function startTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerEndAtMs = Date.now() + TIMER_SECONDS * 1000;
+      timerEl.textContent = formatTime(TIMER_SECONDS);
+      timerInterval = setInterval(() => {
+        const remaining = Math.max(0, (timerEndAtMs - Date.now()) / 1000);
+        timerEl.textContent = formatTime(remaining);
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+      }, 100);
+    }
+
+    // Socket: updateBid
+    socket.on('updateBid', (payload) => {
+      const amount = (payload && typeof payload === 'object') ? payload.amount : payload;
+      const name = (payload && typeof payload === 'object') ? payload.name : null;
+      const inc = (payload && typeof payload === 'object') ? payload.inc : null;
+
+      if (typeof amount === 'number' && !Number.isNaN(amount)) {
+        currentAmount = amount;
+        renderAmount();
       }
+      lastBidderEl.textContent = (name && String(name).trim()) ? name.trim() : '—';
 
-      const line = (name && String(name).trim())
-        ? (incDisplay ? `${name} ${incDisplay}` : `${name} ${amount}`)
-        : (incDisplay ? `${incDisplay}` : `${amount}`);
-      const li = document.createElement("li");
-      li.textContent = line;
-      history.prepend(li);
-
-      if (typeof amount === "number") {
-        lastAmount = amount;
+      if (name && typeof inc === 'number') {
+        historyItems.unshift({ name: name.trim(), inc });
+        if (historyItems.length > MAX_ITEMS) historyItems.length = MAX_ITEMS;
+        renderHistory();
       }
     });
+
+    // Initial render
+    renderAmount();
+    renderHistory();
+    startTimer();
   </script>
 </body>
 </html>

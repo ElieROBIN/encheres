@@ -22,15 +22,7 @@ if (enchereDiv) {
       ? `${enchere.nom} - ${enchere.montant}€`
       : "Aucune enchère";
     historiqueUl.innerHTML = histo
-      .map((e, i, arr) => {
-        const prevMontant = i > 0 && arr[i - 1] && typeof arr[i - 1].montant === "number"
-          ? arr[i - 1].montant
-          : 0;
-        const diff = typeof e.montant === "number" ? (e.montant - prevMontant) : 0;
-        const allowed = [50, 125, 250, 500];
-        const inc = allowed.includes(diff) ? diff : diff;
-        return `<li>${e.nom} - +${inc}</li>`;
-      })
+      .map((e) => `<li>${e.nom} - ${e.montant}€</li>`)
       .join("");
   }
 }

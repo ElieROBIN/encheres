@@ -1,82 +1,182 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>Interface Jury</title>
-  <script src="/socket.io/socket.io.js"></script>
-</head>
-<body>
-  <h1>Proposer une enchère</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Interface Jury</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <img src="logo_ink.svg" alt="INK" />
+      </div>
+    </header>
 
-  <p>Enchère actuelle : <strong id="currentBidDisplay">—</strong></p>
+    <main class="app">
+      <div class="grid">
+        <div class="product-panel">
+          <img class="product-img" src="/print.png" alt="Produit" />
+        </div>
 
-  <div id="controls">
-    <button class="inc" data-inc="50">+50</button>
-    <button class="inc" data-inc="125">+125</button>
-    <button class="inc" data-inc="250">+250</button>
-    <button class="inc" data-inc="500">+500</button>
-  </div>    
+        <div class="info">
+          <div class="header-content">
+            <div class="price-evolution">
+            <p class="last-inc">
+              Dernière enchère : <span id="lastBidder">—</span>
+            </p>
+            <div class="big-amount">
+              <span id="bigAmount">1</span><span class="currency">€</span>
+            </div>
+            </div>
+            <div class="timer">
+              <p class="timer-text">Temps restant : <span id="timer">—</span></p>
+              <div class="timer-bar">
+                <div class="timer-bar-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="information-about-product">
+            <h2 class="title">Flyer Name</h2>
+            <p class="desc">
+              This is a vintage flyer design use this template for your next
+              background included.
+            </p>
+          </div>
 
-  <script>
-    const socket = io();
-    const currentBidDisplay = document.getElementById("currentBidDisplay");
-    const buttons = document.querySelectorAll("#controls .inc");
+          <div id="controls" class="btns">
+            <button class="btn inc" data-inc="50">+50€</button>
+            <button class="btn inc" data-inc="125">+125€</button>
+            <button class="btn inc" data-inc="250">+250€</button>
+            <button class="btn inc" data-inc="500">+500€</button>
+          </div>
+        </div>
+      </div>
+    </main>
 
-    let currentBid = null; // synchronisé via les évènements serveur
-    let bidderName = null; // prénom saisi par l'utilisateur
+    <script>
+      const socket = io();
+      const bigAmountEl = document.getElementById("bigAmount");
+      const lastBidderEl = document.getElementById("lastBidder");
+      const buttons = document.querySelectorAll("#controls .inc");
+       const timerEl = document.getElementById("timer");
+       const timerFillEl = document.querySelector(".timer-bar-fill");
 
-    const format = (n) => `${n} €`;
+      let currentBid = null; // synchronisé via les évènements serveur
+      let bidderName = null; // prénom saisi par l'utilisateur
+       let timerInterval = null;
+       const TIMER_SECONDS = 30;
+       let timerEndAtMs = null;
 
-    const render = () => {
-      currentBidDisplay.textContent = (currentBid === null || Number.isNaN(currentBid)) ? "—" : format(currentBid);
-    };
+      const formatAmount = (n) => new Intl.NumberFormat("fr-FR").format(n);
 
-    // Ecoute des mises à jour globales (acceptées par le serveur)
-    socket.on("updateBid", (payload) => {
-      // payload peut être un nombre (ancien format) ou un objet { amount, name }
-      let amount;
-      if (typeof payload === "number") {
-        amount = payload;
-      } else if (payload && typeof payload === "object") {
-        amount = typeof payload.amount === "number" ? payload.amount : parseFloat(payload.amount);
-      }
-      if (!Number.isNaN(amount)) {
-        currentBid = amount;
-        render();
-      }
-    });
+      const render = () => {
+        bigAmountEl.textContent =
+          currentBid === null || Number.isNaN(currentBid)
+            ? "—"
+            : formatAmount(currentBid);
+      };
 
-    // Envoi direct d'une nouvelle enchère en ajoutant l'incrément choisi
-    const onClickInc = (evt) => {
-      const inc = parseFloat(evt.currentTarget.getAttribute("data-inc"));
-      const base = Number.isFinite(currentBid) ? currentBid : 0;
-      const nextBid = base + inc;
-      const nameToSend = bidderName && bidderName.trim() ? bidderName.trim() : "Anonyme";
-      socket.emit("newBid", { amount: nextBid, name: nameToSend, inc });
-    };
+       const setButtonsEnabled = (enabled) => {
+         buttons.forEach((btn) => {
+           btn.disabled = !enabled;
+         });
+       };
 
-    buttons.forEach((btn) => btn.addEventListener("click", onClickInc));
+       const formatTime = (totalSeconds) => {
+         const clamped = Math.max(0, Math.ceil(totalSeconds));
+         const m = String(Math.floor(clamped / 60)).padStart(2, "0");
+         const s = String(clamped % 60).padStart(2, "0");
+         return `${m}:${s}`;
+       };
 
-    socket.on("bidRejected", ({ reason }) => {
-      alert(reason || "Enchère refusée");
-    });
+       const renderTimer = (remainingSeconds) => {
+         if (timerEl) timerEl.textContent = formatTime(remainingSeconds);
+         if (timerFillEl) {
+           const elapsed = Math.max(0, Math.min(TIMER_SECONDS, TIMER_SECONDS - remainingSeconds));
+           const pct = (elapsed / TIMER_SECONDS) * 100;
+           timerFillEl.style.width = `${pct}%`;
+         }
+       };
 
-    // Demander et mémoriser le prénom au premier chargement
-    const storedName = localStorage.getItem("juryFirstName");
-    if (storedName && storedName.trim()) {
-      bidderName = storedName.trim();
-    } else {
-      const asked = prompt("Votre prénom ?");
-      if (asked && asked.trim()) {
-        bidderName = asked.trim();
-        localStorage.setItem("juryFirstName", bidderName);
+       const stopTimer = () => {
+         if (timerInterval) {
+           clearInterval(timerInterval);
+           timerInterval = null;
+         }
+       };
+
+       const startTimer = () => {
+         stopTimer();
+         timerEndAtMs = Date.now() + TIMER_SECONDS * 1000;
+         renderTimer(TIMER_SECONDS);
+         setButtonsEnabled(true);
+         timerInterval = setInterval(() => {
+           const remaining = Math.max(0, (timerEndAtMs - Date.now()) / 1000);
+           renderTimer(remaining);
+           if (remaining <= 0) {
+             stopTimer();
+             setButtonsEnabled(false);
+           }
+         }, 100);
+       };
+
+      // Ecoute des mises à jour globales (acceptées par le serveur)
+       socket.on("updateBid", (payload) => {
+        // payload peut être un nombre (ancien format) ou un objet { amount, name }
+         const previousBid = currentBid;
+        let amount;
+        let name = null;
+        if (typeof payload === "number") {
+          amount = payload;
+        } else if (payload && typeof payload === "object") {
+          amount =
+            typeof payload.amount === "number"
+              ? payload.amount
+              : parseFloat(payload.amount);
+          name = typeof payload.name === "string" ? payload.name : null;
+        }
+        if (!Number.isNaN(amount)) {
+          currentBid = amount;
+          render();
+        }
+        lastBidderEl.textContent = name && name.trim() ? name.trim() : "—";
+         // Le timer est indépendant des évènements d'enchère; aucun redémarrage ici
+      });
+
+      // Envoi direct d'une nouvelle enchère en ajoutant l'incrément choisi
+      const onClickInc = (evt) => {
+        const inc = parseFloat(evt.currentTarget.getAttribute("data-inc"));
+        const base = Number.isFinite(currentBid) ? currentBid : 0;
+        const nextBid = base + inc;
+        const nameToSend =
+          bidderName && bidderName.trim() ? bidderName.trim() : "Anonyme";
+        socket.emit("newBid", { amount: nextBid, name: nameToSend, inc });
+      };
+
+      buttons.forEach((btn) => btn.addEventListener("click", onClickInc));
+
+      socket.on("bidRejected", ({ reason }) => {
+        alert(reason || "Enchère refusée");
+      });
+
+      // Demander et mémoriser le prénom au premier chargement
+      const storedName = localStorage.getItem("juryFirstName");
+      if (storedName && storedName.trim()) {
+        bidderName = storedName.trim();
       } else {
-        bidderName = "Anonyme";
+        const asked = prompt("Votre prénom ?");
+        if (asked && asked.trim()) {
+          bidderName = asked.trim();
+          localStorage.setItem("juryFirstName", bidderName);
+        } else {
+          bidderName = "Anonyme";
+        }
       }
-    }
 
-    // Rendu initial
-    render();
-  </script>
-</body>
+      // Rendu initial
+      render();
+       startTimer();
+    </script>
+  </body>
 </html>

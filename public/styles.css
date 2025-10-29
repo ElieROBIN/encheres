@@ -338,15 +338,12 @@ p {
     align-items: flex-end;
   }
 
-  .product-panel {
-    width: 100% !important;
-  }
-
   .product-panel, .info {
     width: 100% !important;
   }
 
   .product-panel {
+    width: 100% !important;
     border-radius: 0px;
   }
 
@@ -369,6 +366,7 @@ p {
 
   .info {
     gap: 2rem;
+    width: 100% !important;
   }
 
   .product-img {

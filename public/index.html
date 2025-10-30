@@ -1,122 +1,136 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>Vue Projecteur</title>
-  <script src="/socket.io/socket.io.js"></script>
-  <link rel="stylesheet" href="/projector.css">
-</head>
-<body class="projector">
-  <header class="proj-header">
-    <div class="proj-brand">
-      <img src="/logo_ink.svg" alt="INK" />
-      INK
-    </div>
-  </header>
-
-  <main class="proj-app">
-    <div class="proj-grid">
-      <div class="proj-image-panel">
-        <img class="proj-image" src="/photo-qrcode.png" alt="Produit" />
+  <head>
+    <meta charset="UTF-8" />
+    <title>Vue Projecteur</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="/projector.css" />
+  </head>
+  <body class="projector">
+    <header class="proj-header">
+      <div class="proj-brand">
+        <img src="/logo_ink.svg" alt="INK" />
       </div>
+    </header>
 
-      <div class="proj-info">
-        <div>
-          <div class="proj-title">Flyer Name</div>
-          <div class="proj-desc">This is a vintage flyer design use this template for your next background included.</div>
-          <div class="proj-sep"></div>
+    <main class="proj-app">
+      <div class="proj-grid">
+        <div class="proj-image-panel">
+          <img class="proj-image" src="/photo-qrcode.png" alt="Produit" />
         </div>
 
-        <div class="proj-meta">
-          <div>Dernière enchère : <span id="projLastBidder">—</span></div>
-          <div class="proj-timer">Temps restant <span class="proj-timer-value" id="projTimer">00:30</span></div>
+        <div class="proj-info">
+          <div>
+            <div class="proj-title">Flyer Name</div>
+            <div class="proj-desc">
+              This is a vintage flyer design use this template for your next
+              background included.
+            </div>
+            <div class="proj-sep"></div>
+          </div>
+
+          <div class="enchere-temps">
+            <div class="proj-meta">
+              <div>Dernière enchère : <span id="projLastBidder">—</span></div>
+              <div class="proj-amount">
+                <span id="projAmount">1</span><img class="money" src="/money.svg" alt="money">
+              </div>
+            </div>
+            <div class="proj-timer">
+              <span>Temps restant</span>
+              <span class="proj-timer-value" id="projTimer">00:30</span>
+            </div>
+          </div>
+
+          <div class="proj-history" id="projHistory"></div>
         </div>
-
-        <div class="proj-amount"><span id="projAmount">1</span><span class="cur">€</span></div>
-
-        <div class="proj-history" id="projHistory"></div>
       </div>
-    </div>
-  </main>
+    </main>
 
-  <script>
-    const socket = io();
+    <script>
+      const socket = io();
 
-    // Elements
-    const amountEl = document.getElementById('projAmount');
-    const lastBidderEl = document.getElementById('projLastBidder');
-    const historyEl = document.getElementById('projHistory');
-    const timerEl = document.getElementById('projTimer');
+      // Elements
+      const amountEl = document.getElementById("projAmount");
+      const lastBidderEl = document.getElementById("projLastBidder");
+      const historyEl = document.getElementById("projHistory");
+      const timerEl = document.getElementById("projTimer");
 
-    // State
-    let currentAmount = 1;
-    let historyItems = []; // { name, inc }
-    const MAX_ITEMS = 4;
+      // State
+      let currentAmount = 1;
+      let historyItems = []; // { name, inc }
+      const MAX_ITEMS = 30;
 
-    // Timer (desktop projector mirrors jury logic - no restart on bids)
-    const TIMER_SECONDS = 30;
-    let timerInterval = null;
-    let timerEndAtMs = null;
+      // Timer (desktop projector mirrors jury logic - no restart on bids)
+      const TIMER_SECONDS = 30;
+      let timerInterval = null;
+      let timerEndAtMs = null;
 
-    function formatNumber(n) {
-      return new Intl.NumberFormat('fr-FR').format(n);
-    }
+      function formatNumber(n) {
+        return new Intl.NumberFormat("fr-FR").format(n);
+      }
 
-    function renderAmount() {
-      amountEl.textContent = formatNumber(currentAmount);
-    }
+      function renderAmount() {
+        amountEl.textContent = formatNumber(currentAmount);
+      }
 
-    function renderHistory() {
-      historyEl.innerHTML = historyItems
-        .slice(0, MAX_ITEMS)
-        .map(item => `<div class="proj-history-item"><span class="name">${item.name}</span><span class="inc">+${item.inc}</span></div>`)
-        .join('');
-    }
+      function renderHistory() {
+        historyEl.innerHTML = historyItems
+          .slice(0, MAX_ITEMS)
+          .map(
+            (item) =>
+              `<div class="proj-history-item"><span class="name">${item.name}</span><div><span class="inc">+${item.inc}</span><img class="money-name" src="/money-grey.svg"></div></div>`
+          )
+          .join("");
+      }
 
-    function formatTime(totalSeconds) {
-      const clamped = Math.max(0, Math.ceil(totalSeconds));
-      const m = String(Math.floor(clamped / 60)).padStart(2, '0');
-      const s = String(clamped % 60).padStart(2, '0');
-      return `${m}:${s}`;
-    }
+      function formatTime(totalSeconds) {
+        const clamped = Math.max(0, Math.ceil(totalSeconds));
+        const m = String(Math.floor(clamped / 60)).padStart(2, "0");
+        const s = String(clamped % 60).padStart(2, "0");
+        return `${m}:${s}`;
+      }
 
-    function startTimer() {
-      if (timerInterval) clearInterval(timerInterval);
-      timerEndAtMs = Date.now() + TIMER_SECONDS * 1000;
-      timerEl.textContent = formatTime(TIMER_SECONDS);
-      timerInterval = setInterval(() => {
-        const remaining = Math.max(0, (timerEndAtMs - Date.now()) / 1000);
-        timerEl.textContent = formatTime(remaining);
-        if (remaining <= 0) {
-          clearInterval(timerInterval);
-          timerInterval = null;
+      function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        timerEndAtMs = Date.now() + TIMER_SECONDS * 1000;
+        timerEl.textContent = formatTime(TIMER_SECONDS);
+        timerInterval = setInterval(() => {
+          const remaining = Math.max(0, (timerEndAtMs - Date.now()) / 1000);
+          timerEl.textContent = formatTime(remaining);
+          if (remaining <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+        }, 100);
+      }
+
+      // Socket: updateBid
+      socket.on("updateBid", (payload) => {
+        const amount =
+          payload && typeof payload === "object" ? payload.amount : payload;
+        const name =
+          payload && typeof payload === "object" ? payload.name : null;
+        const inc = payload && typeof payload === "object" ? payload.inc : null;
+
+        if (typeof amount === "number" && !Number.isNaN(amount)) {
+          currentAmount = amount;
+          renderAmount();
         }
-      }, 100);
-    }
+        lastBidderEl.textContent =
+          name && String(name).trim() ? name.trim() : "—";
 
-    // Socket: updateBid
-    socket.on('updateBid', (payload) => {
-      const amount = (payload && typeof payload === 'object') ? payload.amount : payload;
-      const name = (payload && typeof payload === 'object') ? payload.name : null;
-      const inc = (payload && typeof payload === 'object') ? payload.inc : null;
+        if (name && typeof inc === "number") {
+          historyItems.unshift({ name: name.trim(), inc });
+          if (historyItems.length > MAX_ITEMS) historyItems.length = MAX_ITEMS;
+          renderHistory();
+        }
+      });
 
-      if (typeof amount === 'number' && !Number.isNaN(amount)) {
-        currentAmount = amount;
-        renderAmount();
-      }
-      lastBidderEl.textContent = (name && String(name).trim()) ? name.trim() : '—';
-
-      if (name && typeof inc === 'number') {
-        historyItems.unshift({ name: name.trim(), inc });
-        if (historyItems.length > MAX_ITEMS) historyItems.length = MAX_ITEMS;
-        renderHistory();
-      }
-    });
-
-    // Initial render
-    renderAmount();
-    renderHistory();
-    startTimer();
-  </script>
-</body>
+      // Initial render
+      renderAmount();
+      renderHistory();
+      startTimer();
+    </script>
+  </body>
 </html>

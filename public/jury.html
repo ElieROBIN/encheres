@@ -34,7 +34,7 @@
               Dernière enchère : <span id="lastBidder">—</span>
             </p>
             <div class="big-amount">
-              <span id="bigAmount">1</span><span class="currency">€</span>
+              <span id="bigAmount">1</span><span class="currency"><img class="money-jury" src="/money.svg" alt="money" /></span>
             </div>
             </div>
             <div class="timer">
@@ -44,10 +44,22 @@
           </div>
 
           <div id="controls" class="btns">
-            <button class="btn inc" data-inc="50">+50€</button>
-            <button class="btn inc" data-inc="125">+125€</button>
-            <button class="btn inc" data-inc="250">+250€</button>
-            <button class="btn inc" data-inc="500">+500€</button>
+            <button class="btn inc" data-inc="50">
+              <span class="btn-inc-value">+50</span>
+              <img class="btn-inc-icon" src="/money-1.svg" alt="Monnaie" />
+            </button>
+            <button class="btn inc" data-inc="125">
+              <span class="btn-inc-value">+125</span>
+              <img class="btn-inc-icon" src="/money-1.svg" alt="Monnaie" />
+            </button>
+            <button class="btn inc" data-inc="250">
+              <span class="btn-inc-value">+250</span>
+              <img class="btn-inc-icon" src="/money-1.svg" alt="Monnaie" />
+            </button>
+            <button class="btn inc" data-inc="500">
+              <span class="btn-inc-value">+500</span>
+              <img class="btn-inc-icon" src="/money-1.svg" alt="Monnaie" />
+            </button>
           </div>
           <p id="bidHint" class="bid-hint">Appuyez pour enchérir</p>
         </div>

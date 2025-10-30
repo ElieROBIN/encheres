@@ -260,6 +260,10 @@ p {
     background 0.15s,
     border-color 0.15s,
     transform 0.02s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
 }
 
 .btn:hover {
@@ -274,6 +278,15 @@ p {
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn-inc-value {
+  line-height: 1;
+}
+
+.btn-inc-icon {
+  width: 16px;
+  height: auto;
 }
 
 .line-separation {
@@ -553,4 +566,8 @@ p {
 
 .bid-hint {
   font-size: 2rem;
+}
+
+.money-jury {
+  width: 48px;
 }

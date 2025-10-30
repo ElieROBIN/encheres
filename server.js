@@ -7,6 +7,78 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+const TIMER_DURATION_MS = 60 * 1000;
+
+let timerEndAt = null;
+let timerTimeout = null;
+
+const clearTimerTimeout = () => {
+  if (timerTimeout) {
+    clearTimeout(timerTimeout);
+    timerTimeout = null;
+  }
+};
+
+const broadcastTimerState = (target = io) => {
+  const payload = { durationMs: TIMER_DURATION_MS };
+
+  if (typeof timerEndAt === "number") {
+    payload.endAt = timerEndAt;
+    payload.status = timerEndAt > Date.now() ? "running" : "ended";
+  } else {
+    payload.status = "idle";
+  }
+
+  target.emit("timerState", payload);
+};
+
+const finalizeTimer = () => {
+  if (timerEndAt === null) {
+    clearTimerTimeout();
+    return;
+  }
+
+  timerEndAt = null;
+  clearTimerTimeout();
+  io.emit("timerEnded");
+  broadcastTimerState();
+};
+
+const ensureTimerTimeout = () => {
+  clearTimerTimeout();
+
+  if (typeof timerEndAt !== "number") {
+    return;
+  }
+
+  const remaining = timerEndAt - Date.now();
+
+  if (!Number.isFinite(remaining) || remaining <= 0) {
+    finalizeTimer();
+    return;
+  }
+
+  timerTimeout = setTimeout(() => {
+    finalizeTimer();
+  }, remaining);
+};
+
+const startGlobalTimer = () => {
+  const now = Date.now();
+
+  if (typeof timerEndAt === "number" && timerEndAt > now) {
+    return;
+  }
+
+  timerEndAt = now + TIMER_DURATION_MS;
+  io.emit("timerStarted", {
+    endAt: timerEndAt,
+    durationMs: TIMER_DURATION_MS,
+  });
+  broadcastTimerState();
+  ensureTimerTimeout();
+};
+
 const MAX_CLIENTS = 100; // 🔒 nombre maximum d’utilisateurs autorisés
 
 // Dossier public
@@ -37,7 +109,12 @@ io.on("connection", (socket) => {
   }
 
   // Informer le nouveau client de la valeur actuelle
-  socket.emit("updateBid", { amount: io.currentBid, name: io.currentBidderName, inc: null });
+  socket.emit("updateBid", {
+    amount: io.currentBid,
+    name: io.currentBidderName,
+    inc: null,
+  });
+  broadcastTimerState(socket);
 
   // Quand quelqu’un envoie une nouvelle enchère
   socket.on("newBid", (payload) => {
@@ -69,6 +146,12 @@ io.on("connection", (socket) => {
       incToSend ? `(+${incToSend})` : ""
     );
     io.emit("updateBid", { amount: numericBid, name: io.currentBidderName, inc: incToSend }); // envoie à tous les clients
+
+    startGlobalTimer();
+  });
+
+  socket.on("requestTimerState", () => {
+    broadcastTimerState(socket);
   });
 
   // Quand quelqu’un se déconnecte

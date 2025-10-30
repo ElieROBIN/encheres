@@ -40,7 +40,7 @@
             </div>
             <div class="proj-timer">
               <span>Temps restant</span>
-              <span class="proj-timer-value" id="projTimer">00:30</span>
+              <span class="proj-timer-value" id="projTimer">01:00</span>
             </div>
           </div>
 
@@ -101,10 +101,13 @@
       let lastBidderName = null;
       let lastBidAmount = currentAmount;
 
-      // Timer (desktop projector mirrors jury logic - no restart on bids)
-      const TIMER_SECONDS = 30;
+      // Timer (piloté par le serveur)
+      const DEFAULT_TIMER_SECONDS = 60;
+      let timerDurationMs = DEFAULT_TIMER_SECONDS * 1000;
       let timerInterval = null;
       let timerEndAtMs = null;
+      let timerRunning = false;
+      let timerCompleted = false;
 
       function formatNumber(n) {
         return new Intl.NumberFormat("fr-FR").format(n);
@@ -131,18 +134,65 @@
         return `${m}:${s}`;
       }
 
-      function startTimer() {
-        if (timerInterval) clearInterval(timerInterval);
-        timerEndAtMs = Date.now() + TIMER_SECONDS * 1000;
-        timerEl.textContent = formatTime(TIMER_SECONDS);
-        timerInterval = setInterval(() => {
+      function updateTimerDisplay(remainingSeconds) {
+        timerEl.textContent = formatTime(remainingSeconds);
+      }
+
+      function resetTimerDisplay() {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        timerEndAtMs = null;
+        timerRunning = false;
+        timerCompleted = false;
+        updateTimerDisplay(timerDurationMs / 1000);
+      }
+
+      function handleTimerCompletion() {
+        if (!timerRunning || timerCompleted) return;
+        timerCompleted = true;
+        timerRunning = false;
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        timerEndAtMs = null;
+        updateTimerDisplay(0);
+        handleTimerFinished();
+      }
+
+      function startTimerCountdown(endAtMs, durationMs) {
+        if (typeof durationMs === "number" && durationMs > 0) {
+          timerDurationMs = durationMs;
+        }
+
+        timerEndAtMs = endAtMs;
+        timerRunning = true;
+        timerCompleted = false;
+
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+
+        const tick = () => {
+          if (!timerRunning || timerEndAtMs === null) return;
           const remaining = Math.max(0, (timerEndAtMs - Date.now()) / 1000);
-          timerEl.textContent = formatTime(remaining);
+          updateTimerDisplay(remaining);
           if (remaining <= 0) {
+            handleTimerCompletion();
+          }
+        };
+
+        tick();
+        timerInterval = setInterval(() => {
+          if (!timerRunning) {
             clearInterval(timerInterval);
             timerInterval = null;
-            handleTimerFinished();
+            return;
           }
+          tick();
         }, 100);
       }
 
@@ -229,10 +279,42 @@
         });
       }
 
+      socket.on("timerStarted", ({ endAt, durationMs } = {}) => {
+        if (typeof endAt === "number") {
+          startTimerCountdown(endAt, durationMs);
+        }
+      });
+
+      socket.on("timerState", ({ endAt, durationMs } = {}) => {
+        if (typeof durationMs === "number" && durationMs > 0) {
+          timerDurationMs = durationMs;
+        }
+
+        if (typeof endAt === "number" && endAt > Date.now()) {
+          startTimerCountdown(endAt, timerDurationMs);
+        } else if (typeof endAt === "number" && endAt <= Date.now()) {
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+          timerRunning = false;
+          timerCompleted = true;
+          timerEndAtMs = null;
+          updateTimerDisplay(0);
+        } else {
+          resetTimerDisplay();
+        }
+      });
+
+      socket.on("timerEnded", () => {
+        handleTimerCompletion();
+      });
+
       // Initial render
       renderAmount();
       renderHistory();
-      startTimer();
+      resetTimerDisplay();
+      socket.emit("requestTimerState");
     </script>
   </body>
 </html>

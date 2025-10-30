@@ -100,8 +100,11 @@
       let isTimerAllowingBids = true;
       let cooldownInterval = null;
       let timerInterval = null;
-      const TIMER_SECONDS = 30;
+      const DEFAULT_TIMER_SECONDS = 60;
+      let timerDurationMs = DEFAULT_TIMER_SECONDS * 1000;
       let timerEndAtMs = null;
+      let timerRunning = false;
+      let timerCompleted = false;
 
       const formatAmount = (n) => new Intl.NumberFormat("fr-FR").format(n);
 
@@ -120,6 +123,10 @@
       };
       const renderBidHint = () => {
         if (!bidHintEl) return;
+        if (!isTimerAllowingBids) {
+          bidHintEl.textContent = "Enchères terminées";
+          return;
+        }
         const remaining = Math.max(0, Math.ceil((cooldownUntilMs - Date.now()) / 1000));
         if (remaining > 0) {
           bidHintEl.textContent = `Vous pourrez surenchérir dans ${remaining} seconde${remaining > 1 ? 's' : ''}`;
@@ -153,36 +160,80 @@
          return `${m}:${s}`;
        };
 
-       const renderTimer = (remainingSeconds) => {
-         if (timerEl) timerEl.textContent = formatTime(remainingSeconds);
-         if (timerFillEl) {
-           const elapsed = Math.max(0, Math.min(TIMER_SECONDS, TIMER_SECONDS - remainingSeconds));
-           const pct = (elapsed / TIMER_SECONDS) * 100;
-           timerFillEl.style.width = `${pct}%`;
-         }
-       };
+      const renderTimer = (remainingSeconds) => {
+        if (timerEl) timerEl.textContent = formatTime(remainingSeconds);
+        if (timerFillEl) {
+          const elapsed = Math.max(
+            0,
+            Math.min(
+              timerDurationMs / 1000,
+              timerDurationMs / 1000 - remainingSeconds
+            )
+          );
+          const pct = (elapsed / (timerDurationMs / 1000)) * 100;
+          timerFillEl.style.width = `${pct}%`;
+        }
+      };
 
-       const stopTimer = () => {
-         if (timerInterval) {
-           clearInterval(timerInterval);
-           timerInterval = null;
-         }
-       };
+      const resetTimerDisplay = () => {
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        timerRunning = false;
+        timerCompleted = false;
+        timerEndAtMs = null;
+        renderTimer(timerDurationMs / 1000);
+      };
 
-       const startTimer = () => {
-         stopTimer();
-         timerEndAtMs = Date.now() + TIMER_SECONDS * 1000;
-         renderTimer(TIMER_SECONDS);
+      const completeTimerCountdown = () => {
+        if (!timerRunning || timerCompleted) return;
+        timerCompleted = true;
+        timerRunning = false;
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        timerEndAtMs = null;
+        renderTimer(0);
+        setButtonsEnabled(false);
+      };
+
+      const startTimerCountdown = (endAtMs, durationMs) => {
+        if (typeof durationMs === "number" && durationMs > 0) {
+          timerDurationMs = durationMs;
+        }
+
+        timerEndAtMs = endAtMs;
+        timerRunning = true;
+        timerCompleted = false;
+
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+
         setButtonsEnabled(true);
-         timerInterval = setInterval(() => {
-           const remaining = Math.max(0, (timerEndAtMs - Date.now()) / 1000);
-           renderTimer(remaining);
-           if (remaining <= 0) {
-             stopTimer();
-             setButtonsEnabled(false);
-           }
-         }, 100);
-       };
+
+        const tick = () => {
+          if (!timerRunning || timerEndAtMs === null) return;
+          const remaining = Math.max(0, (timerEndAtMs - Date.now()) / 1000);
+          renderTimer(remaining);
+          if (remaining <= 0) {
+            completeTimerCountdown();
+          }
+        };
+
+        tick();
+        timerInterval = setInterval(() => {
+          if (!timerRunning) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            return;
+          }
+          tick();
+        }, 100);
+      };
 
       const applyBidderName = (rawName) => {
         const finalName = rawName && rawName.trim() ? rawName.trim() : "Anonyme";
@@ -230,11 +281,12 @@
       };
 
       // Ecoute des mises à jour globales (acceptées par le serveur)
-       socket.on("updateBid", (payload) => {
+      socket.on("updateBid", (payload) => {
         // payload peut être un nombre (ancien format) ou un objet { amount, name }
-         const previousBid = currentBid;
+        const previousBid = currentBid;
         let amount;
         let name = null;
+        let inc = null;
         if (typeof payload === "number") {
           amount = payload;
         } else if (payload && typeof payload === "object") {
@@ -243,13 +295,15 @@
               ? payload.amount
               : parseFloat(payload.amount);
           name = typeof payload.name === "string" ? payload.name : null;
+          inc = typeof payload.inc === "number" ? payload.inc : null;
         }
         if (!Number.isNaN(amount)) {
           currentBid = amount;
           render();
         }
         lastBidderEl.textContent = name && name.trim() ? name.trim() : "—";
-         // Le timer est indépendant des évènements d'enchère; aucun redémarrage ici
+
+        // Le timer est indépendant des évènements d'enchère; aucun redémarrage ici
       });
 
       // Envoi direct d'une nouvelle enchère en ajoutant l'incrément choisi
@@ -271,6 +325,38 @@
 
       socket.on("bidRejected", ({ reason }) => {
         alert(reason || "Enchère refusée");
+      });
+
+      socket.on("timerStarted", ({ endAt, durationMs } = {}) => {
+        if (typeof endAt === "number") {
+          startTimerCountdown(endAt, durationMs);
+        }
+      });
+
+      socket.on("timerState", ({ endAt, durationMs } = {}) => {
+        if (typeof durationMs === "number" && durationMs > 0) {
+          timerDurationMs = durationMs;
+        }
+
+        if (typeof endAt === "number" && endAt > Date.now()) {
+          startTimerCountdown(endAt, timerDurationMs);
+        } else if (typeof endAt === "number" && endAt <= Date.now()) {
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+          timerRunning = false;
+          timerCompleted = true;
+          timerEndAtMs = null;
+          renderTimer(0);
+          setButtonsEnabled(false);
+        } else {
+          resetTimerDisplay();
+        }
+      });
+
+      socket.on("timerEnded", () => {
+        completeTimerCountdown();
       });
 
       if (nameModalConfirmBtn) {
@@ -319,8 +405,9 @@
 
       // Rendu initial
       render();
-      startTimer();
+      resetTimerDisplay();
       updateButtonsState();
+      socket.emit("requestTimerState");
     </script>
   </body>
 </html>

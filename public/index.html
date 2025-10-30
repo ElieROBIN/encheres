@@ -93,6 +93,8 @@
       const winnerModalNameEl = document.getElementById("winnerModalName");
       const winnerModalAmountEl = document.getElementById("winnerModalAmount");
       const winnerModalCloseBtn = document.getElementById("winnerModalClose");
+      const bidSound = new Audio("/shopify-sound.mp3");
+      bidSound.preload = "auto";
 
       // State
       let currentAmount = 1;
@@ -247,6 +249,12 @@
           historyItems.unshift({ name: name.trim(), inc });
           if (historyItems.length > MAX_ITEMS) historyItems.length = MAX_ITEMS;
           renderHistory();
+          try {
+            bidSound.currentTime = 0;
+            bidSound.play().catch(() => {});
+          } catch (error) {
+            console.warn("Lecture du son d'enchère impossible", error);
+          }
         }
       });
 

@@ -47,6 +47,38 @@
       </div>
     </main>
 
+    <div class="proj-modal" id="winnerModal" aria-hidden="true">
+      <div class="proj-modal-backdrop" data-close-modal></div>
+      <div
+        class="proj-modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="winnerModalTitle"
+      >
+        <div class="proj-modal-title" id="winnerModalTitle">
+          Enchère terminée
+        </div>
+        <div class="proj-modal-body">
+          <div class="proj-modal-row">
+            <span class="label">Gagnant</span>
+            <span class="value" id="winnerModalName">—</span>
+          </div>
+          <div class="proj-modal-row">
+            <span class="label">Dernière enchère</span>
+            <span class="value" id="winnerModalAmount">—</span>
+          </div>
+        </div>
+        <button
+          class="proj-modal-close"
+          type="button"
+          id="winnerModalClose"
+          aria-label="Fermer la fenêtre"
+        >
+          Fermer
+        </button>
+      </div>
+    </div>
+
     <script>
       const socket = io();
 
@@ -55,11 +87,17 @@
       const lastBidderEl = document.getElementById("projLastBidder");
       const historyEl = document.getElementById("projHistory");
       const timerEl = document.getElementById("projTimer");
+      const winnerModal = document.getElementById("winnerModal");
+      const winnerModalNameEl = document.getElementById("winnerModalName");
+      const winnerModalAmountEl = document.getElementById("winnerModalAmount");
+      const winnerModalCloseBtn = document.getElementById("winnerModalClose");
 
       // State
       let currentAmount = 1;
       let historyItems = []; // { name, inc }
       const MAX_ITEMS = 30;
+      let lastBidderName = null;
+      let lastBidAmount = currentAmount;
 
       // Timer (desktop projector mirrors jury logic - no restart on bids)
       const TIMER_SECONDS = 30;
@@ -101,8 +139,39 @@
           if (remaining <= 0) {
             clearInterval(timerInterval);
             timerInterval = null;
+            handleTimerFinished();
           }
         }, 100);
+      }
+
+      function openWinnerModal() {
+        if (!winnerModal) return;
+        winnerModal.classList.add("is-open");
+        winnerModal.setAttribute("aria-hidden", "false");
+      }
+
+      function closeWinnerModal() {
+        if (!winnerModal) return;
+        winnerModal.classList.remove("is-open");
+        winnerModal.setAttribute("aria-hidden", "true");
+      }
+
+      function handleTimerFinished() {
+        if (!winnerModal) return;
+
+        const hasWinner = Boolean(lastBidderName && lastBidderName.trim());
+
+        if (winnerModalNameEl) {
+          winnerModalNameEl.textContent = hasWinner ? lastBidderName : "—";
+        }
+
+        if (winnerModalAmountEl) {
+          winnerModalAmountEl.textContent = hasWinner
+            ? `${formatNumber(lastBidAmount)} €`
+            : "—";
+        }
+
+        openWinnerModal();
       }
 
       // Socket: updateBid
@@ -116,9 +185,11 @@
         if (typeof amount === "number" && !Number.isNaN(amount)) {
           currentAmount = amount;
           renderAmount();
+          lastBidAmount = currentAmount;
         }
         lastBidderEl.textContent =
           name && String(name).trim() ? name.trim() : "—";
+        lastBidderName = name && String(name).trim() ? name.trim() : null;
 
         if (name && typeof inc === "number") {
           historyItems.unshift({ name: name.trim(), inc });
@@ -126,6 +197,35 @@
           renderHistory();
         }
       });
+
+      if (winnerModalCloseBtn) {
+        winnerModalCloseBtn.addEventListener("click", () => {
+          closeWinnerModal();
+        });
+      }
+
+      if (winnerModal) {
+        winnerModal.addEventListener("click", (event) => {
+          const target = event.target;
+          if (
+            target === winnerModal ||
+            (target instanceof HTMLElement &&
+              (target.dataset.closeModal !== undefined ||
+                target.classList.contains("proj-modal-backdrop")))
+          ) {
+            closeWinnerModal();
+          }
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (
+            event.key === "Escape" &&
+            winnerModal.classList.contains("is-open")
+          ) {
+            closeWinnerModal();
+          }
+        });
+      }
 
       // Initial render
       renderAmount();

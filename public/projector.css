@@ -264,6 +264,95 @@ body.projector {
   font-size: 20px;
 }
 
+.proj-modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.proj-modal.is-open {
+  display: flex;
+}
+
+.proj-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+}
+
+.proj-modal-content {
+  position: relative;
+  z-index: 1;
+  background: #111111;
+  border: 1px solid var(--proj-border);
+  border-radius: 16px;
+  padding: 32px 40px;
+  min-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  text-align: center;
+}
+
+.proj-modal-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--proj-text);
+}
+
+.proj-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.proj-modal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.90);
+}
+
+.proj-modal-row .label {
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.60);
+}
+
+.proj-modal-row .value {
+  font-weight: 600;
+  font-size: 22px;
+  color: var(--proj-text);
+}
+
+.proj-modal-close {
+  align-self: center;
+  padding: 10px 28px;
+  border-radius: 999px;
+  border: none;
+  background: #ffffff;
+  color: #0a0a0a;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.proj-modal-close:hover {
+  transform: translateY(-2px);
+}
+
+.proj-modal-close:active {
+  transform: translateY(0);
+  background: #dedede;
+}
+
 @media (max-width: 980px) {
   .proj-app {
     padding: 20px;

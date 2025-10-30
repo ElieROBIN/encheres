@@ -102,6 +102,7 @@
       const MAX_ITEMS = 30;
       let lastBidderName = null;
       let lastBidAmount = currentAmount;
+      let lastRenderedAmount = currentAmount;
 
       // Timer (piloté par le serveur)
       const DEFAULT_TIMER_SECONDS = 60;
@@ -236,10 +237,14 @@
           payload && typeof payload === "object" ? payload.name : null;
         const inc = payload && typeof payload === "object" ? payload.inc : null;
 
+        let amountChanged = false;
+
         if (typeof amount === "number" && !Number.isNaN(amount)) {
+          amountChanged = amount !== lastRenderedAmount;
           currentAmount = amount;
           renderAmount();
           lastBidAmount = currentAmount;
+          lastRenderedAmount = currentAmount;
         }
         lastBidderEl.textContent =
           name && String(name).trim() ? name.trim() : "—";
@@ -249,6 +254,9 @@
           historyItems.unshift({ name: name.trim(), inc });
           if (historyItems.length > MAX_ITEMS) historyItems.length = MAX_ITEMS;
           renderHistory();
+        }
+
+        if (amountChanged) {
           try {
             bidSound.currentTime = 0;
             bidSound.play().catch(() => {});

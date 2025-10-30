@@ -150,7 +150,7 @@ body.projector {
 .proj-info {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 23px;
 }
 .proj-title {
   font-family: var(--font-display);

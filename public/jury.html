@@ -20,10 +20,11 @@
         </div>
         <div class="info">
           <div class="information-about-product">
-            <h2 class="title">Flyer Name</h2>
+            <h2 class="title">Timbre “ONE PENNY”</h2>
             <p class="desc">
-              This is a vintage flyer design use this template for your next
-              background included.
+              Penny Black (1840) - Premier timbre postal de l’histoire, émis au
+              Royaume-Uni. Imprimé en noir sur fond blanc, il représente le
+              profil de la reine Victoria.
             </p>
           </div>
           <span class="line-separation"></span>
@@ -53,23 +54,54 @@
       </div>
     </main>
 
+    <div class="app-modal" id="nameModal" aria-hidden="true">
+      <div class="app-modal-backdrop" data-close-modal></div>
+      <div
+        class="app-modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="nameModalTitle"
+      >
+        <div class="app-modal-title" id="nameModalTitle">Bienvenue</div>
+        <p class="app-modal-subtitle">
+          Indique ton prénom pour que nous puissions l'afficher lorsqu'une enchère est validée.
+        </p>
+        <label class="app-modal-label" for="nameModalInput">Prénom</label>
+        <input
+          class="app-modal-input"
+          id="nameModalInput"
+          type="text"
+          name="firstname"
+          autocomplete="given-name"
+          placeholder="Ex. Camille"
+          maxlength="40"
+        />
+        <button class="app-modal-confirm" id="nameModalConfirm" type="button">
+          Continuer
+        </button>
+      </div>
+    </div>
+
     <script>
       const socket = io();
       const bigAmountEl = document.getElementById("bigAmount");
       const lastBidderEl = document.getElementById("lastBidder");
       const buttons = document.querySelectorAll("#controls .inc");
-       const timerEl = document.getElementById("timer");
-       const timerFillEl = document.querySelector(".timer-bar-fill");
+      const timerEl = document.getElementById("timer");
+      const timerFillEl = document.querySelector(".timer-bar-fill");
       const bidHintEl = document.getElementById("bidHint");
+      const nameModal = document.getElementById("nameModal");
+      const nameModalInput = document.getElementById("nameModalInput");
+      const nameModalConfirmBtn = document.getElementById("nameModalConfirm");
 
       let currentBid = null; // synchronisé via les évènements serveur
       let bidderName = null; // prénom saisi par l'utilisateur
       let cooldownUntilMs = 0; // anti-spam après clic
       let isTimerAllowingBids = true;
       let cooldownInterval = null;
-       let timerInterval = null;
-       const TIMER_SECONDS = 30;
-       let timerEndAtMs = null;
+      let timerInterval = null;
+      const TIMER_SECONDS = 30;
+      let timerEndAtMs = null;
 
       const formatAmount = (n) => new Intl.NumberFormat("fr-FR").format(n);
 
@@ -152,6 +184,51 @@
          }, 100);
        };
 
+      const applyBidderName = (rawName) => {
+        const finalName = rawName && rawName.trim() ? rawName.trim() : "Anonyme";
+        bidderName = finalName;
+        try {
+          localStorage.setItem("juryFirstName", finalName);
+        } catch (error) {
+          console.warn("Impossible d'enregistrer le prénom", error);
+        }
+      };
+
+      const openNameModal = () => {
+        if (!nameModal) return;
+        nameModal.classList.add("is-open");
+        nameModal.setAttribute("aria-hidden", "false");
+        requestAnimationFrame(() => {
+          if (nameModalInput) {
+            nameModalInput.classList.remove("is-invalid");
+            nameModalInput.focus();
+          }
+        });
+      };
+
+      const closeNameModal = () => {
+        if (!nameModal) return;
+        nameModal.classList.remove("is-open");
+        nameModal.setAttribute("aria-hidden", "true");
+      };
+
+      const handleNameSubmit = () => {
+        if (!nameModalInput) {
+          applyBidderName(bidderName);
+          closeNameModal();
+          return;
+        }
+        const value = nameModalInput.value;
+        if (!value || !value.trim()) {
+          nameModalInput.classList.add("is-invalid");
+          nameModalInput.focus();
+          return;
+        }
+        nameModalInput.classList.remove("is-invalid");
+        applyBidderName(value);
+        closeNameModal();
+      };
+
       // Ecoute des mises à jour globales (acceptées par le serveur)
        socket.on("updateBid", (payload) => {
         // payload peut être un nombre (ancien format) ou un objet { amount, name }
@@ -196,18 +273,48 @@
         alert(reason || "Enchère refusée");
       });
 
+      if (nameModalConfirmBtn) {
+        nameModalConfirmBtn.addEventListener("click", handleNameSubmit);
+      }
+
+      if (nameModalInput) {
+        nameModalInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            handleNameSubmit();
+          }
+        });
+      }
+
+      if (nameModal) {
+        nameModal.addEventListener("click", (event) => {
+          const target = event.target;
+          if (
+            target === nameModal ||
+            (target instanceof HTMLElement && target.dataset.closeModal !== undefined)
+          ) {
+            applyBidderName(bidderName);
+            closeNameModal();
+          }
+        });
+
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape" && nameModal.classList.contains("is-open")) {
+            applyBidderName(bidderName);
+            closeNameModal();
+          }
+        });
+      }
+
       // Demander et mémoriser le prénom au premier chargement
       const storedName = localStorage.getItem("juryFirstName");
       if (storedName && storedName.trim()) {
-        bidderName = storedName.trim();
-      } else {
-        const asked = prompt("Votre prénom ?");
-        if (asked && asked.trim()) {
-          bidderName = asked.trim();
-          localStorage.setItem("juryFirstName", bidderName);
-        } else {
-          bidderName = "Anonyme";
+        applyBidderName(storedName.trim());
+        if (nameModalInput) {
+          nameModalInput.value = storedName.trim();
         }
+      } else {
+        openNameModal();
       }
 
       // Rendu initial
